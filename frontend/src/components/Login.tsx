@@ -1,21 +1,18 @@
 import { useState } from "react";
-import { useAuthStore } from "@/store/authStore";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { SplashPage } from "./SplashPage";
 import { ThemeToggle } from "./ThemeToggle";
 import { Logo } from "./Logo";
 
 export function Login() {
-  const [username, setUsername] = useState("");
   const [showSplash, setShowSplash] = useState(false);
-  const { login } = useAuthStore();
 
-  const handleLogin = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (username.trim()) login(username);
+  const handleGitHubLogin = () => {
+    const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
+    const FRONTEND_URL = import.meta.env.VITE_FRONTEND_URL;
+
+    window.location.href = `${API_BASE_URL}/api/auth/oauth/github?redirectUri=${encodeURIComponent(FRONTEND_URL + '/auth/callback')}`;
   };
 
   return (
@@ -35,37 +32,14 @@ export function Login() {
             <CardTitle className="text-center text-sm font-medium sr-only">로그인</CardTitle>
           </CardHeader>
           <CardContent>
-            <form onSubmit={handleLogin} className="space-y-4">
-              <div className="space-y-1">
-                <Label htmlFor="username" className="text-sm font-medium">
-                  사용자 이름 또는 이메일 주소
-                </Label>
-                <Input
-                  id="username"
-                  className="bg-input border-border focus-visible:ring-ring text-sm h-8"
-                  value={username}
-                  onChange={(e) => setUsername(e.target.value)}
-                />
-              </div>
-              <div className="space-y-1">
-                <div className="flex items-center justify-between">
-                  <Label htmlFor="password" className="text-sm font-medium">
-                    비밀번호
-                  </Label>
-                  <a href="#" className="text-xs text-blue-text hover:underline">
-                    비밀번호를 잊으셨나요?
-                  </a>
-                </div>
-                <Input
-                  id="password"
-                  type="password"
-                  className="bg-input border-border focus-visible:ring-ring text-sm h-8"
-                />
-              </div>
-              <Button type="submit" className="w-full h-8 mt-2 bg-[#238636] hover:bg-[#2ea043] text-white">
-                로그인
+            <div className="space-y-4 flex flex-col items-center justify-center py-4">
+              <Button
+                onClick={handleGitHubLogin}
+                className="w-full h-10 mt-2 bg-[#24292e] hover:bg-[#2f363d] text-white flex items-center justify-center gap-2"
+              >
+                GitHub으로 로그인
               </Button>
-            </form>
+            </div>
           </CardContent>
         </Card>
 
@@ -83,3 +57,4 @@ export function Login() {
     </div>
   );
 }
+
