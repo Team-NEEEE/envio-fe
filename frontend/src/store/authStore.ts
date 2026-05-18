@@ -10,6 +10,14 @@ interface AuthState {
   refreshToken: string | null;
 
   setTokens: (access: string, refresh: string) => void;
+  setOAuthSession: (payload: {
+    accessToken: string;
+    refreshToken: string;
+    userId: string;
+    email: string;
+    role: string;
+    githubId?: string;
+  }) => void;
   fetchUser: () => Promise<void>;
   logout: () => Promise<void>;
 }
@@ -23,6 +31,23 @@ export const useAuthStore = create<AuthState>()(
 
       setTokens: (accessToken, refreshToken) => {
         set({ accessToken, refreshToken });
+      },
+
+      setOAuthSession: ({ accessToken, refreshToken, userId, email, role, githubId }) => {
+        const resolvedGithubId = githubId || email.split('@')[0] || mockUser.githubId;
+
+        set({
+          accessToken,
+          refreshToken,
+          user: {
+            ...mockUser,
+            id: String(userId),
+            name: resolvedGithubId,
+            githubId: resolvedGithubId,
+            email,
+            role,
+          },
+        });
       },
 
       fetchUser: async () => {

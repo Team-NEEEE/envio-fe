@@ -1,49 +1,52 @@
 import { useEffect, useState } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
-import { useAuthStore } from '@/store/authStore';
-import { api } from '@/lib/api';
+import { useNavigate } from 'react-router-dom';
 import { Loader2 } from 'lucide-react';
+import { useAuthStore } from '@/store/authStore';
+
+function readGithubIdFromAccessToken(accessToken: string) {
+  try {
+    const [, payload] = accessToken.split('.');
+    if (!payload) return undefined;
+
+    const base64 = payload.replace(/-/g, '+').replace(/_/g, '/');
+    const paddedBase64 = base64.padEnd(Math.ceil(base64.length / 4) * 4, '=');
+    const decodedPayload = JSON.parse(atob(paddedBase64)) as { githubId?: unknown };
+
+    return typeof decodedPayload.githubId === 'string' ? decodedPayload.githubId : undefined;
+  } catch {
+    return undefined;
+  }
+}
 
 export function OAuthCallback() {
-  const [searchParams] = useSearchParams();
   const navigate = useNavigate();
-  const { setTokens, fetchUser } = useAuthStore();
+  const { setOAuthSession } = useAuthStore();
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const code = searchParams.get('code');
-    const state = searchParams.get('state');
+    const hashParams = new URLSearchParams(window.location.hash.replace(/^#/, ''));
+    const accessToken = hashParams.get('accessToken');
+    const refreshToken = hashParams.get('refreshToken');
+    const userId = hashParams.get('userId');
+    const email = hashParams.get('email');
+    const role = hashParams.get('role');
 
-    if (!code) {
-      setError('인증 코드가 없습니다.');
+    if (!accessToken || !refreshToken || !userId || !email || !role) {
+      setError('로그인 응답에 필요한 인증 정보가 없습니다.');
       return;
     }
 
-    const processOAuth = async () => {
-      try {
-        const { data } = await api.get('/api/auth/oauth/github/callback', {
-          params: { code, state }
-        });
+    setOAuthSession({
+      accessToken,
+      refreshToken,
+      userId,
+      email,
+      role,
+      githubId: readGithubIdFromAccessToken(accessToken),
+    });
 
-        if (data && data.data) {
-          const { accessToken, refreshToken } = data.data;
-
-          setTokens(accessToken, refreshToken);
-
-          await fetchUser();
-
-          navigate('/');
-        } else {
-          throw new Error('Invalid response from server');
-        }
-      } catch (err) {
-        console.error('OAuth processing failed:', err);
-        setError('로그인 처리 중 오류가 발생했습니다.');
-      }
-    };
-
-    processOAuth();
-  }, [searchParams, navigate, setTokens, fetchUser]);
+    navigate('/', { replace: true });
+  }, [navigate, setOAuthSession]);
 
   if (error) {
     return (
@@ -53,7 +56,7 @@ export function OAuthCallback() {
           onClick={() => navigate('/login')}
           className="px-4 py-2 bg-blue-text text-white rounded-md hover:bg-blue-text/90 transition-colors"
         >
-          로그인 페이지로 돌아가기
+          로그인으로 돌아가기
         </button>
       </div>
     );
@@ -62,7 +65,7 @@ export function OAuthCallback() {
   return (
     <div className="flex h-screen w-screen items-center justify-center flex-col gap-4 bg-background">
       <Loader2 className="h-8 w-8 animate-spin text-blue-text" />
-      <p className="text-foreground font-medium">로그인 처리 중입니다...</p>
+      <p className="text-foreground font-medium">로그인 처리 중...</p>
     </div>
   );
 }
