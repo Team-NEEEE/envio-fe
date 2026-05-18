@@ -32,6 +32,8 @@ export interface User {
   id: string;
   name: string;
   githubId: string;
+  email?: string;
+  role?: string;
   avatarUrl: string;
   organizations: Organization[];
 }

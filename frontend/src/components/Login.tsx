@@ -12,7 +12,10 @@ export function Login() {
     const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
     const FRONTEND_URL = import.meta.env.VITE_FRONTEND_URL;
 
-    window.location.href = `${API_BASE_URL}/api/auth/oauth/github?redirectUri=${encodeURIComponent(FRONTEND_URL + '/auth/callback')}`;
+    const redirectUri = `${FRONTEND_URL}/auth/callback`;
+
+    window.location.href =
+    `${API_BASE_URL}/api/auth/oauth/github?redirectUri=${encodeURIComponent(redirectUri)}`;
   };
 
   return (
