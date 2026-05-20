@@ -69,7 +69,7 @@ export function OAuthCallback() {
         <p className="text-red-500 font-semibold">{error}</p>
         <button
           onClick={() => navigate('/login')}
-          className="px-4 py-2 bg-blue-text text-white rounded-md hover:bg-blue-text/90 transition-colors"
+          className="cursor-pointer px-4 py-2 bg-blue-text text-white rounded-md hover:bg-blue-text/90 transition-colors"
         >
           로그인으로 돌아가기
         </button>

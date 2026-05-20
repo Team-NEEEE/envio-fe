@@ -4,6 +4,15 @@ export interface EnvHistory {
   version_id: number;
   base_version_id?: number;
   github_id: string;
+  encrypted_environment?: {
+    encoding: string;
+    algorithm: string;
+    variables: Record<string, {
+      nonce: string;
+      ciphertext: string;
+    }>;
+    schemaVersion: number;
+  };
   created_at: string;
   changed_key?: string; // API(CORE_HISTORY_001) 응답에 없는 필드 - optional 처리
 }

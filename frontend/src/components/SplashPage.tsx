@@ -24,6 +24,20 @@ const slides = [
   },
 ];
 
+function renderSlideTitle(title: string) {
+  if (title === "완벽한 정보 보호 (Zero-Knowledge)") {
+    return (
+      <>
+        완벽한 정보 보호
+        <br />
+        (Zero-Knowledge)
+      </>
+    );
+  }
+
+  return title;
+}
+
 export function SplashPage({ onClose }: SplashPageProps) {
   const [currentSlide, setCurrentSlide] = useState(0);
 
@@ -61,7 +75,7 @@ export function SplashPage({ onClose }: SplashPageProps) {
                 }`}
             >
               {slide.icon}
-              <h2 className="text-2xl font-semibold mb-4 text-foreground">{slide.title}</h2>
+              <h2 className="text-2xl font-semibold mb-4 text-foreground">{renderSlideTitle(slide.title)}</h2>
               <p className="text-lg text-gray-text leading-relaxed max-w-lg">
                 {slide.description}
               </p>
@@ -74,7 +88,7 @@ export function SplashPage({ onClose }: SplashPageProps) {
             <button
               key={index}
               onClick={() => setCurrentSlide(index)}
-              className={`h-2.5 rounded-full transition-all duration-300 ${index === currentSlide ? "w-8 bg-blue-text" : "w-2.5 bg-border"
+              className={`h-2.5 cursor-pointer rounded-full transition-all duration-300 ${index === currentSlide ? "w-8 bg-blue-text" : "w-2.5 bg-border"
                 }`}
               aria-label={`Slide ${index + 1}`}
             />

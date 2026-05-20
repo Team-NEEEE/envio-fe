@@ -4,31 +4,6 @@ import type { EnvHistory } from '@/store/mockData';
 
 const API_BASE_URL = 'http://env.io.kr';
 
-interface ApiErrorBody {
-  message?: string;
-  error?: {
-    message?: string;
-    details?: string[];
-  } | null;
-}
-
-interface ApiResponse<T> extends ApiErrorBody {
-  success?: boolean;
-  data: T | null;
-  timestamp?: string;
-}
-
-export interface ProjectDetail {
-  project_id: number;
-  project_name: string;
-  organization_name: string;
-  description?: string | null;
-  version_id: number;
-  github_app_id?: string | null;
-  created_at: string;
-  updated_at: string;
-}
-
 export const api = axios.create({
   baseURL: API_BASE_URL,
   headers: {
@@ -95,25 +70,8 @@ export async function getProjectHistory(projectId: number): Promise<EnvHistory[]
   const { data } = await api.get(`/api/core/projects/${projectId}/history`);
   if (data && Array.isArray(data.data)) {
     console.log(`[CORE_HISTORY_001] 히스토리 ${data.data.length}건 수신`);
+    console.log('[CORE_HISTORY_001] 히스토리 상세 조회 성공:', data.data)
     return data.data as EnvHistory[];
   }
   return [];
-}
-
-/**
- * CORE_PROJECT_001: 프로젝트 상세 조회
- * GET /api/core/projects/{projectId}
- */
-export async function getProjectDetail(projectId: number): Promise<ProjectDetail> {
-  console.log(`[CORE_PROJECT_001] 프로젝트 상세 조회 요청 (projectId: ${projectId})`);
-  const { data } = await api.get<ApiResponse<ProjectDetail>>(`/api/core/projects/${projectId}`);
-
-  if (data?.success && data.data) {
-    console.log('[CORE_PROJECT_001] 프로젝트 상세 조회 성공:', data.data);
-    return data.data;
-  }
-
-  const detailMessage = data?.error?.details?.[0];
-  const message = data?.error?.message || detailMessage || data?.message || '프로젝트 상세 정보를 불러오지 못했습니다.';
-  throw new Error(message);
 }
