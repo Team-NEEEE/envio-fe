@@ -5,7 +5,7 @@ export interface EnvHistory {
   base_version_id?: number;
   github_id: string;
   created_at: string;
-  changed_key: string;
+  changed_key?: string; // API(CORE_HISTORY_001) 응답에 없는 필드 - optional 처리
 }
 
 export interface EnvKey {

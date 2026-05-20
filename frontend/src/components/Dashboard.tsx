@@ -1,20 +1,110 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAuthStore } from "@/store/authStore";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { HistoryViewer } from "./HistoryViewer";
 import { ThemeToggle } from "./ThemeToggle";
-import type { Organization, Repository } from "@/store/mockData";
-import { BookMarked, FolderGit2, LogOut, ShieldAlert, KeyRound } from "lucide-react";
+import type { Organization, Repository, EnvHistory } from "@/store/mockData";
+import { AlertCircle, BookMarked, FolderGit2, KeyRound, Loader2, LogOut, ShieldAlert } from "lucide-react";
 import { Logo } from "./Logo";
 import { format } from "date-fns";
+import { getProjectDetail, getProjectHistory, type ProjectDetail } from "@/lib/api";
+
+function formatApiDate(value?: string | null) {
+  if (!value) return "-";
+
+  const normalizedValue = value.includes("T") ? value : value.replace(" ", "T");
+  const date = new Date(normalizedValue);
+
+  if (Number.isNaN(date.getTime())) {
+    return value;
+  }
+
+  return format(date, "yyyy년 MM월 dd일 HH:mm");
+}
 
 export function Dashboard() {
   const { user, logout } = useAuthStore();
-  const [selectedOrgId, setSelectedOrgId] = useState<string | null>(
-    user?.organizations?.[0]?.id || null
-  );
+  const [selectedOrgId, setSelectedOrgId] = useState<string | null>(null);
   const [selectedRepoId, setSelectedRepoId] = useState<number | null>(null);
+
+  // CORE_PROJECT_001: 프로젝트 상세 관련 상태
+  const [projectDetail, setProjectDetail] = useState<ProjectDetail | null>(null);
+  const [projectDetailLoading, setProjectDetailLoading] = useState(false);
+  const [projectDetailError, setProjectDetailError] = useState<string | null>(null);
+
+  // CORE_HISTORY_001: 히스토리 관련 상태
+  const [repoHistory, setRepoHistory] = useState<EnvHistory[]>([]);
+  const [historyLoading, setHistoryLoading] = useState(false);
+  const [historyError, setHistoryError] = useState<string | null>(null);
+
+  // 조직 목록이 API에서 로드된 후 첫 번째 조직을 자동 선택
+  useEffect(() => {
+    if (user?.organizations?.length && !selectedOrgId) {
+      setSelectedOrgId(user.organizations[0].id);
+    }
+  }, [user?.organizations, selectedOrgId]);
+
+  // CORE_HISTORY_001: 레포지토리 선택 시 히스토리 API 호출
+  useEffect(() => {
+    if (!selectedRepoId) {
+      setRepoHistory([]);
+      setHistoryError(null);
+      return;
+    }
+
+    let ignore = false;
+    setHistoryLoading(true);
+    setHistoryError(null);
+    getProjectHistory(selectedRepoId)
+      .then((data) => {
+        if (!ignore) setRepoHistory(data);
+      })
+      .catch((err) => {
+        if (ignore) return;
+        console.error('[CORE_HISTORY_001] 히스토리 조회 실패:', err);
+        setHistoryError('히스토리를 불러오는 데 실패했습니다.');
+      })
+      .finally(() => {
+        if (!ignore) setHistoryLoading(false);
+      });
+
+    return () => {
+      ignore = true;
+    };
+  }, [selectedRepoId]);
+
+  // CORE_PROJECT_001: 레포지토리 선택 시 프로젝트 상세 API 호출
+  useEffect(() => {
+    if (!selectedRepoId) {
+      setProjectDetail(null);
+      setProjectDetailError(null);
+      return;
+    }
+
+    let ignore = false;
+    setProjectDetail(null);
+    setProjectDetailLoading(true);
+    setProjectDetailError(null);
+
+    getProjectDetail(selectedRepoId)
+      .then((data) => {
+        if (!ignore) setProjectDetail(data);
+      })
+      .catch((err) => {
+        if (ignore) return;
+        console.error('[CORE_PROJECT_001] 프로젝트 상세 조회 실패:', err);
+        const message = err instanceof Error ? err.message : '프로젝트 상세 정보를 불러오는 데 실패했습니다.';
+        setProjectDetailError(message);
+      })
+      .finally(() => {
+        if (!ignore) setProjectDetailLoading(false);
+      });
+
+    return () => {
+      ignore = true;
+    };
+  }, [selectedRepoId]);
 
   if (!user) return null;
 
@@ -112,7 +202,7 @@ export function Dashboard() {
                       <CardContent>
                         <p className="text-xs text-gray-text flex items-center gap-1">
                           <KeyRound className="w-3 h-3" />
-                          {repo.envKeys.length}개의 환경변수 저장됨
+                          프로젝트 상세 정보 보기
                         </p>
                       </CardContent>
                     </Card>
@@ -126,7 +216,7 @@ export function Dashboard() {
 
                   <div className="flex items-center gap-3 border-b border-border pb-4">
                     <FolderGit2 className="w-6 h-6 text-gray-text" />
-                    <h2 className="text-xl font-bold">{selectedRepo.name}</h2>
+                    <h2 className="text-xl font-bold">{projectDetail?.project_name ?? selectedRepo.name}</h2>
                   </div>
 
                   {/* Env Keys View */}
@@ -134,27 +224,82 @@ export function Dashboard() {
                     <CardHeader className="bg-muted/30 border-b border-border">
                       <CardTitle className="text-sm flex items-center gap-2">
                         <ShieldAlert className="w-4 h-4 text-red-text" />
-                        최근 환경변수
+                        최근 환경변수 상태
                       </CardTitle>
                     </CardHeader>
                     <CardContent className="p-0">
-                      <ul className="divide-y divide-border">
-                        {selectedRepo.envKeys.map((env) => (
-                          <li key={env.id} className="flex items-center justify-between p-4 hover:bg-muted/20">
-                            <code className="text-sm font-semibold text-foreground bg-muted px-2 py-1 rounded">
-                              {env.key}
-                            </code>
-                            <span className="text-xs text-gray-text">
-                              업데이트됨: {format(new Date(env.lastUpdated), "yyyy년 MM월 dd일")}
-                            </span>
-                          </li>
-                        ))}
-                      </ul>
+                      {projectDetailLoading && (
+                        <div className="p-6 flex flex-col items-center justify-center gap-2 text-gray-text">
+                          <Loader2 className="w-5 h-5 animate-spin" />
+                          <p className="text-sm">프로젝트 최신 정보를 불러오는 중...</p>
+                        </div>
+                      )}
+
+                      {!projectDetailLoading && projectDetailError && (
+                        <div className="p-4 flex items-center gap-2 text-sm text-red-text bg-red-text/5">
+                          <AlertCircle className="w-4 h-4 flex-shrink-0" />
+                          <span>{projectDetailError}</span>
+                        </div>
+                      )}
+
+                      {!projectDetailLoading && !projectDetailError && projectDetail && (
+                        <dl className="divide-y divide-border">
+                          <div className="flex items-center justify-between gap-4 p-4 hover:bg-muted/20">
+                            <dt className="text-sm text-gray-text">프로젝트</dt>
+                            <dd className="min-w-0 text-right">
+                              <p className="truncate text-sm font-semibold text-foreground">
+                                {projectDetail.project_name}
+                              </p>
+                              <p className="truncate text-xs text-gray-text">
+                                {projectDetail.organization_name}
+                              </p>
+                            </dd>
+                          </div>
+                          <div className="flex items-center justify-between gap-4 p-4 hover:bg-muted/20">
+                            <dt className="text-sm text-gray-text">최신 버전</dt>
+                            <dd>
+                              <code className="text-sm font-semibold text-blue-text bg-muted px-2 py-1 rounded">
+                                v{projectDetail.version_id}
+                              </code>
+                            </dd>
+                          </div>
+                          <div className="flex items-center justify-between gap-4 p-4 hover:bg-muted/20">
+                            <dt className="text-sm text-gray-text">최근 업데이트</dt>
+                            <dd className="text-right text-sm text-foreground">
+                              {formatApiDate(projectDetail.updated_at)}
+                            </dd>
+                          </div>
+                          <div className="flex items-center justify-between gap-4 p-4 hover:bg-muted/20">
+                            <dt className="text-sm text-gray-text">GitHub App</dt>
+                            <dd className="max-w-[60%] truncate text-right text-sm text-foreground">
+                              {projectDetail.github_app_id || "연동 정보 없음"}
+                            </dd>
+                          </div>
+                          {projectDetail.description && (
+                            <div className="p-4 hover:bg-muted/20">
+                              <dt className="text-sm text-gray-text">설명</dt>
+                              <dd className="mt-1 text-sm text-foreground">
+                                {projectDetail.description}
+                              </dd>
+                            </div>
+                          )}
+                        </dl>
+                      )}
+
+                      {!projectDetailLoading && !projectDetailError && !projectDetail && (
+                        <div className="p-6 text-center text-sm text-gray-text">
+                          프로젝트 상세 정보가 없습니다.
+                        </div>
+                      )}
                     </CardContent>
                   </Card>
 
                   {/* History View */}
-                  <HistoryViewer history={selectedRepo.history} />
+                  <HistoryViewer
+                    history={repoHistory}
+                    loading={historyLoading}
+                    error={historyError}
+                  />
                 </div>
               )}
             </div>

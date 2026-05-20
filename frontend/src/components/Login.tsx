@@ -9,13 +9,13 @@ export function Login() {
   const [showSplash, setShowSplash] = useState(false);
 
   const handleGitHubLogin = () => {
-    const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
-    const FRONTEND_URL = import.meta.env.VITE_FRONTEND_URL;
+    const API_BASE_URL = 'http://env.io.kr';
+    const FRONTEND_URL = 'http://localhost:5173';
 
     const redirectUri = `${FRONTEND_URL}/auth/callback`;
 
     window.location.href =
-    `${API_BASE_URL}/api/auth/oauth/github?redirectUri=${encodeURIComponent(redirectUri)}`;
+      `${API_BASE_URL}/api/auth/oauth/github?redirectUri=${encodeURIComponent(redirectUri)}`;
   };
 
   return (

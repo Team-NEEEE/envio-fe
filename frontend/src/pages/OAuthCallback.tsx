@@ -24,12 +24,24 @@ export function OAuthCallback() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    const searchParams = new URLSearchParams(window.location.search);
     const hashParams = new URLSearchParams(window.location.hash.replace(/^#/, ''));
-    const accessToken = hashParams.get('accessToken');
-    const refreshToken = hashParams.get('refreshToken');
-    const userId = hashParams.get('userId');
-    const email = hashParams.get('email');
-    const role = hashParams.get('role');
+    const getParam = (key: string) => searchParams.get(key) || hashParams.get(key);
+
+    const accessToken = getParam('accessToken');
+    const refreshToken = getParam('refreshToken');
+    const userId = getParam('userId');
+    const email = getParam('email');
+    const role = getParam('role');
+    const backendError = getParam('error');
+
+    if (backendError === 'oauth_failed') {
+      console.error("백엔드 OAuth 실패 반환됨");
+      if (!accessToken) {
+        setError('GitHub 인증에 실패했습니다 (error=oauth_failed). 백엔드 로그를 확인해주세요.');
+        return;
+      }
+    }
 
     if (!accessToken || !refreshToken || !userId || !email || !role) {
       setError('로그인 응답에 필요한 인증 정보가 없습니다.');
@@ -43,9 +55,12 @@ export function OAuthCallback() {
       email,
       role,
       githubId: readGithubIdFromAccessToken(accessToken),
+    }).then(() => {
+      navigate('/', { replace: true });
+    }).catch(err => {
+      console.error("세션 설정/조직 연동 중 오류:", err);
+      navigate('/', { replace: true });
     });
-
-    navigate('/', { replace: true });
   }, [navigate, setOAuthSession]);
 
   if (error) {
